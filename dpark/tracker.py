@@ -74,7 +74,8 @@ class TrackerServer(object):
         locs = self.locs
         sock = env.ctx.socket(zmq.REP)
         port = sock.bind_to_random_port("tcp://0.0.0.0")
-        self.addr = "tcp://%s:%d" % (socket.gethostname(), port)
+        # self.addr = "tcp://%s:%d" % (socket.gethostname(), port)
+        self.addr = "tcp://%s:%d" % ('0.0.0.0', port)
         logger.debug("TrackerServer started at %s", self.addr)
         def reply(msg):
             sock.send_pyobj(msg)
@@ -99,6 +100,10 @@ class TrackerServer(object):
                 reply('ERROR')
         sock.close()
         logger.debug("stop TrackerServer %s", self.addr)
+
+
+
+
 
 class TrackerClient(object):
     def __init__(self, addr):

@@ -1,3 +1,17 @@
+#!/usr/bin/env python
+
+# hook for virtualenv
+# switch to the virtualenv where the executor belongs,
+# replace all the path for modules
+import sys, os.path
+P = 'site-packages'
+apath = os.path.abspath(__file__)
+if P in apath:
+    virltualenv = apath[:apath.index(P)]
+    sysp = [p[:-len(P)] for p in sys.path if p.endswith(P)][0]
+    if sysp != virltualenv:
+        sys.path = [p.replace(sysp, virltualenv) for p in sys.path]
+
 import logging
 import os, sys, time
 import signal
@@ -35,13 +49,6 @@ DEFAULT_WEB_PORT = 5055
 MAX_WORKER_IDLE_TIME = 60
 MAX_EXECUTOR_IDLE_TIME = 60 * 60 * 24
 Script = ''
-
-def setproctitle(x):
-    try:
-        from setproctitle import setproctitle as _setproctitle
-        _setproctitle(x)
-    except ImportError:
-        pass
 
 def reply_status(driver, task_id, state, data=None):
     status = mesos_pb2.TaskStatus()
@@ -286,7 +293,6 @@ class MyExecutor(mesos.Executor):
             self.init_args = args
             sys.path = python_path
             os.environ.update(osenv)
-            setproctitle(Script)
 
             prefix = '[%s] ' % socket.gethostname()
             self.outt = spawn(forward, self.stdout, out_logger, prefix)

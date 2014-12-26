@@ -18,8 +18,6 @@ import subprocess
 import threading
 from threading import Thread
 import socket
-import psutil
-import time
 
 import zmq
 
@@ -47,6 +45,7 @@ def reply_status(driver, task_id, status):
     update.task_id.MergeFrom(task_id)
     update.state = status
     driver.sendStatusUpdate(update)
+
 
 def launch_task(self, driver, task):
     reply_status(driver, task.task_id, mesos_pb2.TASK_RUNNING)
@@ -84,12 +83,6 @@ def launch_task(self, driver, task):
         else:
             return reply_status(driver, task.task_id, mesos_pb2.TASK_FAILED)
 
-    mem = 100
-    for r in task.resources:
-        if r.name == 'mem':
-            mem = r.scalar.value
-            break
-
     try:
         env = dict(os.environ)
         env.update(_env)
@@ -99,42 +92,10 @@ def launch_task(self, driver, task):
         p = subprocess.Popen(command,
                 stdout=wout, stderr=werr,
                 cwd=cwd, env=env, shell=shell)
-        tid = task.task_id.value
-        self.ps[tid] = p
-        code = None
-        last_time = 0
-        while True:
-            time.sleep(0.1)
-            code = p.poll()
-            if code is not None:
-                break
-
-            now = time.time()
-            if now < last_time + 2:
-                continue
-
-            last_time = now
-            try:
-                process = psutil.Process(p.pid)
-                
-                rss = sum((proc.get_memory_info().rss
-                          for proc in process.get_children(recursive=True)),
-                          process.get_memory_info().rss)
-                rss = (rss >> 20)
-            except Exception, e:
-                continue
-
-            if rss > mem * 1.5:
-                print >>werr, "task %s used too much memory: %dMB > %dMB * 1.5, kill it. " \
-                "use -m argument to request more memory." % (
-                    tid, rss, mem)
-                p.kill()
-            elif rss > mem:
-                print >>werr, "task %s used too much memory: %dMB > %dMB, " \
-                "use -m to request for more memory" % (
-                    tid, rss, mem)
-
-        if code == 0:
+        self.ps[task.task_id.value] = p
+        p.wait()
+        code = p.returncode
+        if code == 0 or code is None:
             status = mesos_pb2.TASK_FINISHED
         else:
             print >>werr, ' '.join(command) + ' exit with %s' % code
@@ -153,6 +114,7 @@ def launch_task(self, driver, task):
     t1.join()
     t2.join()
 
+    tid = task.task_id.value
     self.ps.pop(tid, None)
     self.ts.pop(tid, None)
 

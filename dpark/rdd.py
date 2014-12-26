@@ -1021,7 +1021,7 @@ class PartialSplit(Split):
 
 class TextFileRDD(RDD):
 
-    DEFAULT_SPLIT_SIZE = 64*1024*1024
+    DEFAULT_SPLIT_SIZE = 4*1024*1024
 
     def __init__(self, ctx, path, numSplits=None, splitSize=None):
         RDD.__init__(self, ctx)
@@ -1033,7 +1033,7 @@ class TextFileRDD(RDD):
             if numSplits is None:
                 splitSize = self.DEFAULT_SPLIT_SIZE
             else:
-                splitSize = size / numSplits or self.DEFAULT_SPLIT_SIZE
+                splitSize = size / numSplits
         n = size / splitSize
         if size % splitSize > 0:
             n += 1
@@ -1117,7 +1117,7 @@ class PartialTextFileRDD(TextFileRDD):
             if numSplits is None:
                 splitSize = self.DEFAULT_SPLIT_SIZE
             else:
-                splitSize = size / numSplits or self.DEFAULT_SPLIT_SIZE
+                splitSize = size / numSplits
         self.splitSize = splitSize
         if size <= splitSize:
             self._splits = [PartialSplit(0, firstPos, lastPos)]

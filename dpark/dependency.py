@@ -2,10 +2,10 @@ import bisect
 
 from dpark.util import portable_hash
 from dpark.serialize import load_func, dump_func
-
+import weakref
 class Dependency:
     def __init__(self, rdd):
-        self.rdd = rdd
+        self.rdd = weakref.proxy(rdd)
 
     def __getstate__(self):
         raise ValueError("Should not pickle dependency: %r" % self)

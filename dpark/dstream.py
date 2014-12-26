@@ -44,7 +44,7 @@ class DStreamGraph(object):
         self.outputStreams = []
         self.zeroTime = None
         self.batchDuration = batchDuration
-        self.rememberDuration = None
+        self.rememberDuration = 0
 
     def start(self, time):
         self.zeroTime = int(time / self.batchDuration) * self.batchDuration
@@ -68,10 +68,12 @@ class DStreamGraph(object):
     def addInputStream(self, input):
         input.setGraph(self)
         self.inputStreams.append(input)
+        return input
 
     def addOutputStream(self, output):
         output.setGraph(self)
         self.outputStreams.append(output)
+        return output
 
     def generateRDDs(self, time):
         #print 'generateRDDs', self, time
@@ -212,7 +214,14 @@ class Job(object):
 
     def run(self):
         start = time.time()
-        self.func()
+
+        #TODO: Catch DStream exception
+        try:
+            self.func()
+        except Exception,e:
+            import traceback
+            logger.error(traceback.format_exc())
+
         end = time.time()
         return end - start
 
@@ -280,6 +289,8 @@ class Scheduler(object):
             logger.debug("start to run job %s", job)
             self.jobManager.runJob(job)
         self.graph.forgetOldRDDs(time)
+        self.ssc.sc.clear()
+
     #    self.doCheckpoint(time)
 
     #def doCheckpoint(self, time):
@@ -319,7 +330,7 @@ class DStream(object):
         self.dependencies = []
 
         self.generatedRDDs = {}
-        self.rememberDuration = None
+        self.rememberDuration = 0
         self.mustCheckpoint = False
         self.checkpointDuration = None
         self.checkpointData = []
@@ -423,7 +434,7 @@ class DStream(object):
         return rdds
 
     def register(self):
-        self.ssc.registerOutputStream(self)
+        return self.ssc.registerOutputStream(self)
 
     #  DStream Operations
     def union(self, that):
@@ -457,6 +468,9 @@ class DStream(object):
 
     def transform(self, func):
         return TransformedDStream(self, func)
+
+    def cache(self):
+        return self.transform(lambda rdd, t: rdd.cache())
 
     def show(self):
         def forFunc(rdd, t):
@@ -665,8 +679,8 @@ class WindowedDStream(DStream):
 
     @property        
     def parentRememberDuration(self):
-        if self.rememberDuration:
-            return self.rememberDuration + self.windowDuration
+        # if self.rememberDuration:
+        return self.rememberDuration + self.windowDuration
 
     def compute(self, t):
         currentWindow = Interval(t - self.windowDuration, t)
@@ -765,6 +779,9 @@ class InputDStream(DStream):
 
     def stop(self):
         pass
+
+    def register(self):
+        return self.ssc.registerInputStream(self)
 
 class ConstantInputDStream(InputDStream):
     def __init__(self, ssc, rdd):

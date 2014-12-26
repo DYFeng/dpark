@@ -349,6 +349,9 @@ class BaseMapOutputTracker(object):
     def stop(self):
         pass
 
+    def clear(self):
+        pass
+
 class LocalMapOutputTracker(BaseMapOutputTracker):
     def __init__(self):
         self.serverUris = {}

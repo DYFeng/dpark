@@ -5,9 +5,9 @@ logger = logging.getLogger(__name__)
 
 # workdir used in slaves for internal files
 # 
-DPARK_WORK_DIR = '/tmp/dpark'
-if os.path.exists('/dev/shm'):
-    DPARK_WORK_DIR = '/dev/shm,/tmp/dpark'
+DPARK_WORK_DIR = '/media/DATA/dpark/'
+# if os.path.exists('/dev/shm'):
+#     DPARK_WORK_DIR = '/dev/shm,/tmp/dpark'
 
 # uri of mesos master, host[:5050] or or zk://...
 MESOS_MASTER = 'localhost'
